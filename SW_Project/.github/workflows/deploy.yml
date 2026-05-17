@@ -1,0 +1,113 @@
+name: Deploy to Azure
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20.15.0]
+        python-version: [3.11]
+
+    steps:
+    - uses: actions/checkout@v3
+
+    # Backend Setup
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install backend dependencies
+      run: |
+        cd The_project_back
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run Django migrations
+      run: |
+        cd The_project_back
+        python manage.py migrate
+
+    - name: Run backend tests
+      run: |
+        cd The_project_back
+        python manage.py test
+
+    # Frontend Setup
+    - name: Set up Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: The_project_front/package-lock.json
+
+    - name: Install frontend dependencies
+      run: |
+        cd The_project_front
+        npm ci
+
+    - name: Run frontend linter
+      run: |
+        cd The_project_front
+        npm run lint || true
+
+    - name: Build frontend
+      run: |
+        cd The_project_front
+        npm run build
+
+  deploy-staging:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Deploy to Azure Staging
+      uses: azure/appservice-deploy@v2
+      with:
+        app-name: ${{ secrets.AZURE_APP_NAME_STAGING }}
+        publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE_STAGING }}
+        package: .
+
+    - name: Run migrations on Staging
+      run: |
+        cd The_project_back
+        python manage.py migrate
+
+  deploy-production:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: production
+      url: ${{ secrets.PRODUCTION_URL }}
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Deploy to Azure Production
+      uses: azure/appservice-deploy@v2
+      with:
+        app-name: ${{ secrets.AZURE_APP_NAME_PRODUCTION }}
+        publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE_PRODUCTION }}
+        package: .
+
+    - name: Run migrations on Production
+      run: |
+        cd The_project_back
+        python manage.py migrate
+
+    - name: Notify deployment
+      run: echo "Deployment to production completed successfully"

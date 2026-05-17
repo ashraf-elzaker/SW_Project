@@ -1,0 +1,43 @@
+{
+  "name": "sw-project-api",
+  "runtime": "PYTHON|3.11",
+  "linuxFxVersion": "PYTHON|3.11",
+  "appCommandLine": "startup.sh",
+  "appSettings": [
+    {
+      "name": "WEBSITES_ENABLE_APP_SERVICE_STORAGE",
+      "value": "false"
+    },
+    {
+      "name": "SCM_DO_BUILD_DURING_DEPLOYMENT",
+      "value": "true"
+    },
+    {
+      "name": "ENABLE_ORYX_BUILD",
+      "value": "true"
+    },
+    {
+      "name": "BUILD_FLAGS",
+      "value": "nodeprecrecated"
+    },
+    {
+      "name": "XDG_CACHE_HOME",
+      "value": "/tmp/.cache"
+    }
+  ],
+  "connectionStrings": [
+    {
+      "name": "DefaultConnection",
+      "value": "postgresql://",
+      "type": "PostgreSQL"
+    }
+  ],
+  "siteAuthSettings": {
+    "enabled": false
+  },
+  "cors": {
+    "allowedOrigins": [
+      "*"
+    ]
+  }
+}
