@@ -1,0 +1,31 @@
+# Backend Dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY The_project_back/requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy project files
+COPY The_project_back/ .
+
+# Create non-root user
+RUN useradd -m appuser && chown -R appuser:appuser /app
+USER appuser
+
+# Collect static files
+RUN python manage.py collectstatic --noinput
+
+# Expose port
+EXPOSE 8000
+
+# Run application
+CMD ["gunicorn", "backend.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "4"]

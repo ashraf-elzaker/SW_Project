@@ -1,0 +1,53 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'project/The_project_backend/**'
+      - '.github/workflows/test.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'project/The_project_backend/**'
+      - '.github/workflows/test.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install dependencies
+        working-directory: project/The_project_backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run all tests from tests.py
+        working-directory: project/The_project_backend
+        run: python -m unittest tests.py
+        env:
+          DEBUG: 'False'
+          SECRET_KEY: 'test-secret-key-for-ci'
+      - name: Run tests with coverage
+        working-directory: project/The_project_backend
+        run: |
+          pip install coverage
+          coverage run tests.py
+          coverage report -m
+        env:
+          DEBUG: 'False'
+          SECRET_KEY: 'test-secret-key-for-ci'
+      - name: Collect static files
+        working-directory: project/The_project_backend
+        run: python manage.py collectstatic --noinput
+        env:
+          DEBUG: 'False'
+          SECRET_KEY: 'test-secret-key-for-ci'
