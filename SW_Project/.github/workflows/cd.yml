@@ -49,3 +49,25 @@ jobs:
 
       - name: Deployment step (placeholder)
         run: echo "Add deployment (SSH/Kubernetes/etc.) here or trigger environment"
+
+      - name: Deploy to server via SSH
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          timeout: 120s
+          script: |
+            set -e
+            echo "Logging into GHCR"
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
+            echo "Pulling images"
+            docker pull ghcr.io/${{ github.repository_owner }}/${{ github.repository }}-backend:latest || true
+            docker pull ghcr.io/${{ github.repository_owner }}/${{ github.repository }}-frontend:latest || true
+            echo "Changing to deploy dir"
+            cd "${{ secrets.DEPLOY_DIR }}" || exit 1
+            echo "Updating compose and restarting"
+            docker-compose -f "${{ secrets.DOCKER_COMPOSE_FILE }}" pull
+            docker-compose -f "${{ secrets.DOCKER_COMPOSE_FILE }}" up -d --remove-orphans
+
