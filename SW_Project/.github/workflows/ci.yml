@@ -44,11 +44,11 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: The_project_front/package-lock.json
+          cache-dependency-path: The_project_front/package.json
 
       - name: Install frontend dependencies
         working-directory: The_project_front
-        run: npm ci
+        run: npm install
 
       - name: Run frontend build
         working-directory: The_project_front
